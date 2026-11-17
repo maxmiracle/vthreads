@@ -16,6 +16,8 @@ import org.openjdk.jmh.results.IterationResult;
 import org.openjdk.jmh.results.Result;
 import org.openjdk.jmh.runner.IterationType;
 
+import ru.maximserver.bench.BenchmarkIdle;
+
 public final class ThreadUsageProfiler implements InternalProfiler {
 
 	private static final long DEFAULT_INTERVAL_MILLIS = 50;
@@ -25,28 +27,48 @@ public final class ThreadUsageProfiler implements InternalProfiler {
 	private static final boolean EXTERNAL_APP = !"inprocess"
 		.equalsIgnoreCase(System.getenv().getOrDefault("BENCH_APP_MODE", "external"));
 
+	private static volatile ThreadUsageProfiler activeProfiler;
+
 	private final long intervalMillis;
 
 	private ThreadUsageRecorder recorder;
 
 	private HttpClient httpClient;
 
+	private int warmupIterations;
+
+	private int measurementIterations;
+
+	private int currentIterationIndex;
+
+	private IterationType pendingStartType;
+
+	private int pendingStartIndex;
+
 	public ThreadUsageProfiler(String initLine) throws ProfilerException {
 		this.intervalMillis = parseInterval(initLine);
+		activeProfiler = this;
 	}
 
 	@Override
 	public String getDescription() {
-		return "Samples platform and virtual thread usage and writes CSV plus an SVG chart";
+		return "Samples platform and virtual thread usage, active requests and writes CSV plus an SVG chart";
 	}
 
 	@Override
 	public void beforeIteration(BenchmarkParams benchmarkParams, IterationParams iterationParams) {
+		this.currentIterationIndex = nextIterationIndex(iterationParams.getType());
 		String appUrl = System.getProperty(APP_URL_PROPERTY);
 		if (EXTERNAL_APP) {
 			if (appUrl != null) {
 				post(appUrl + "/__bench/iteration/start?type=" + iterationParams.getType() + "&index="
-						+ iterationParams.getCount());
+						+ this.currentIterationIndex);
+			}
+			else {
+				// The external application is still starting up during the very first iteration;
+				// ChatBenchmark reports the start once the URL is known.
+				this.pendingStartType = iterationParams.getType();
+				this.pendingStartIndex = this.currentIterationIndex;
 			}
 			return;
 		}
@@ -58,7 +80,7 @@ public final class ThreadUsageProfiler implements InternalProfiler {
 					this.intervalMillis);
 			this.recorder.start();
 		}
-		this.recorder.startIteration(iterationParams.getType() == IterationType.WARMUP, iterationParams.getCount());
+		this.recorder.startIteration(iterationParams.getType() == IterationType.WARMUP, this.currentIterationIndex);
 	}
 
 	@Override
@@ -68,15 +90,49 @@ public final class ThreadUsageProfiler implements InternalProfiler {
 		if (EXTERNAL_APP) {
 			if (appUrl != null) {
 				post(appUrl + "/__bench/iteration/end?type=" + iterationParams.getType() + "&index="
-						+ iterationParams.getCount());
+						+ this.currentIterationIndex);
 			}
-			return Collections.emptyList();
 		}
-		if (this.recorder != null) {
+		else if (this.recorder != null) {
 			this.recorder.endIteration(iterationParams.getType() == IterationType.WARMUP,
-					iterationParams.getCount());
+					this.currentIterationIndex);
 		}
+		pauseAfterMeasurement(iterationParams);
 		return Collections.emptyList();
+	}
+
+	/**
+	 * Stops the load after every measurement iteration, so the chart shows how threads are
+	 * released once the requests are finished. The pause happens after the iteration is closed
+	 * and does not affect the JMH score. The final pause is performed by
+	 * {@code ChatBenchmark#tearDown()} before the application is stopped, hence the flag.
+	 */
+	private void pauseAfterMeasurement(IterationParams iterationParams) {
+		if (iterationParams.getType() == IterationType.WARMUP || BenchmarkIdle.isCompleted()) {
+			return;
+		}
+		BenchmarkIdle.pause();
+	}
+
+	private int nextIterationIndex(IterationType type) {
+		if (type == IterationType.WARMUP) {
+			return this.warmupIterations++;
+		}
+		return this.measurementIterations++;
+	}
+
+	/**
+	 * Reports the iteration that started before the external application was ready.
+	 * Called by the benchmark at the beginning of the first iteration.
+	 */
+	public static void startPendingIteration(String appUrl) {
+		ThreadUsageProfiler profiler = activeProfiler;
+		if (profiler == null || profiler.pendingStartType == null || appUrl == null) {
+			return;
+		}
+		profiler.post(appUrl + "/__bench/iteration/start?type=" + profiler.pendingStartType + "&index="
+				+ profiler.pendingStartIndex);
+		profiler.pendingStartType = null;
 	}
 
 	private void post(String url) {

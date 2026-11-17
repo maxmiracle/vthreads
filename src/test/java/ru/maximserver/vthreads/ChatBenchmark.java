@@ -42,6 +42,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
+import ru.maximserver.bench.BenchmarkIdle;
 import ru.maximserver.bench.ChatBenchmarkApp;
 
 @BenchmarkMode(Mode.SingleShotTime)
@@ -202,6 +203,7 @@ public class ChatBenchmark {
 	@Benchmark
 	@OperationsPerInvocation(REQUESTS)
 	public void thousandChatRequests(Blackhole blackhole) throws Exception {
+		ThreadUsageProfiler.startPendingIteration(System.getProperty(APP_URL_PROPERTY));
 		Semaphore permits = new Semaphore(this.concurrency);
 		List<Future<String>> responses = new ArrayList<>(REQUESTS);
 		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -230,11 +232,32 @@ public class ChatBenchmark {
 
 	@TearDown(Level.Trial)
 	public void tearDown() throws Exception {
+		// JMH runs the trial teardown inside the last iteration, before the profiler's
+		// afterIteration. Close the last measurement iteration and keep the load stopped for
+		// the idle period while the sampler is still running, so the chart shows the release.
 		if (EXTERNAL_APP) {
+			endExternalIteration();
+			BenchmarkIdle.pause();
+			BenchmarkIdle.markCompleted();
 			stopExternalApp();
 		}
 		else if (this.context != null) {
+			ThreadUsageRecorder.endCurrentIteration();
+			BenchmarkIdle.pause();
+			BenchmarkIdle.markCompleted();
 			this.context.close();
+		}
+	}
+
+	private void endExternalIteration() {
+		if (this.appUrl == null) {
+			return;
+		}
+		try {
+			post(this.appUrl + "/__bench/iteration/end?type=MEASUREMENT&index=0");
+		}
+		catch (Exception ex) {
+			System.err.println("[external-app] failed to close the last iteration: " + ex);
 		}
 	}
 

@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="840" viewBox="0 0 1400 840">
+<rect x="0.0" y="0.0" width="1400.0" height="840.0" fill="#ffffff" fill-opacity="1.0" stroke="none" stroke-width="1.0" rx="0.0"/>
+<text x="700.0" y="34.0" font-family="Segoe UI, sans-serif" font-size="22" fill="#111" text-anchor="middle" font-weight="bold" >Схема обработки запроса POST /chat</text>
+<text x="700.0" y="58.0" font-family="Segoe UI, sans-serif" font-size="13" fill="#555" text-anchor="middle" font-weight="normal" >REST-контроллер → ChatService → асинхронный вызов Kafka → блокирующее ожидание → ответ клиенту</text>
+<rect x="478.0" y="300.0" width="24.0" height="270.0" fill="#f58518" fill-opacity="0.16" stroke="none" stroke-width="0.0" rx="6.0"/>
+<text x="466.0" y="435.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#a65e00" text-anchor="middle" font-weight="normal" transform="rotate(-90 466 435)">future.get(timeout)</text>
+<rect x="2.0" y="100.0" width="176.0" height="54.0" fill="#eef2f7" fill-opacity="1" stroke="#7a93ad" stroke-width="1.2" rx="7.0"/>
+<text x="90.0" y="122.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#243b53" text-anchor="middle" font-weight="bold" >Client</text>
+<text x="90.0" y="137.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#243b53" text-anchor="middle" font-weight="normal" >(JMH)</text>
+<line x1="90.0" y1="154.0" x2="90.0" y2="700.0" stroke="#b8c4d1" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="202.0" y="100.0" width="176.0" height="54.0" fill="#eef2f7" fill-opacity="1" stroke="#7a93ad" stroke-width="1.2" rx="7.0"/>
+<text x="290.0" y="122.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#243b53" text-anchor="middle" font-weight="bold" >Tomcat</text>
+<text x="290.0" y="137.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#243b53" text-anchor="middle" font-weight="normal" >ChatController</text>
+<line x1="290.0" y1="154.0" x2="290.0" y2="700.0" stroke="#b8c4d1" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="402.0" y="100.0" width="176.0" height="54.0" fill="#eef2f7" fill-opacity="1" stroke="#7a93ad" stroke-width="1.2" rx="7.0"/>
+<text x="490.0" y="122.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#243b53" text-anchor="middle" font-weight="bold" >ChatService</text>
+<line x1="490.0" y1="154.0" x2="490.0" y2="700.0" stroke="#b8c4d1" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="602.0" y="100.0" width="176.0" height="54.0" fill="#eef2f7" fill-opacity="1" stroke="#7a93ad" stroke-width="1.2" rx="7.0"/>
+<text x="690.0" y="122.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#243b53" text-anchor="middle" font-weight="bold" >PostgreSQL</text>
+<text x="690.0" y="137.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#243b53" text-anchor="middle" font-weight="normal" >chat</text>
+<line x1="690.0" y1="154.0" x2="690.0" y2="700.0" stroke="#b8c4d1" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="802.0" y="100.0" width="176.0" height="54.0" fill="#eef2f7" fill-opacity="1" stroke="#7a93ad" stroke-width="1.2" rx="7.0"/>
+<text x="890.0" y="122.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#243b53" text-anchor="middle" font-weight="bold" >Kafka</text>
+<text x="890.0" y="137.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#243b53" text-anchor="middle" font-weight="normal" >chat-request / chat-response</text>
+<line x1="890.0" y1="154.0" x2="890.0" y2="700.0" stroke="#b8c4d1" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="1002.0" y="100.0" width="176.0" height="54.0" fill="#eef2f7" fill-opacity="1" stroke="#7a93ad" stroke-width="1.2" rx="7.0"/>
+<text x="1090.0" y="122.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#243b53" text-anchor="middle" font-weight="bold" >ChatRequestListener</text>
+<line x1="1090.0" y1="154.0" x2="1090.0" y2="700.0" stroke="#b8c4d1" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="1202.0" y="100.0" width="176.0" height="54.0" fill="#eef2f7" fill-opacity="1" stroke="#7a93ad" stroke-width="1.2" rx="7.0"/>
+<text x="1290.0" y="122.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#243b53" text-anchor="middle" font-weight="bold" >ChatResponseListener</text>
+<line x1="1290.0" y1="154.0" x2="1290.0" y2="700.0" stroke="#b8c4d1" stroke-width="1.2" stroke-dasharray="5,5"/>
+<line x1="90.0" y1="200.0" x2="290.0" y2="200.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="290.0,200.0 282.2,204.5 282.2,195.5" fill="#333"/>
+<rect x="143.7" y="182.0" width="92.6" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="190.0" y="194.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >1. POST /chat</text>
+<line x1="290.0" y1="240.0" x2="490.0" y2="240.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="490.0,240.0 482.2,244.5 482.2,235.5" fill="#333"/>
+<rect x="334.4" y="222.0" width="111.2" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="390.0" y="234.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >2. chat(request)</text>
+<line x1="490.0" y1="280.0" x2="690.0" y2="280.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="690.0,280.0 682.2,284.5 682.2,275.5" fill="#333"/>
+<rect x="453.8" y="262.0" width="272.4" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="590.0" y="274.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >3. INSERT chat (id, request, request_time)</text>
+<line x1="490.0" y1="320.0" x2="890.0" y2="320.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="890.0,320.0 882.2,324.5 882.2,315.5" fill="#333"/>
+<rect x="535.2" y="302.0" width="309.6" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="690.0" y="314.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >4. send chat-request (id, request, request_time)</text>
+<line x1="890.0" y1="360.0" x2="1090.0" y2="360.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="1090.0,360.0 1082.2,364.5 1082.2,355.5" fill="#333"/>
+<rect x="953.0" y="342.0" width="74.0" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="990.0" y="354.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >5. consume</text>
+<line x1="1090.0" y1="388.0" x2="1160.0" y2="388.0" stroke="#8a4b00" stroke-width="1.4"/>
+<line x1="1160.0" y1="388.0" x2="1160.0" y2="406.0" stroke="#8a4b00" stroke-width="1.4"/>
+<line x1="1160.0" y1="406.0" x2="1090.0" y2="406.0" stroke="#8a4b00" stroke-width="1.4"/>
+<polygon points="1090.0,406.0 1097.8,401.5 1097.8,410.5" fill="#8a4b00"/>
+<text x="1104.0" y="381.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#8a4b00" text-anchor="start" font-weight="normal" >6. sleep(response-delay)</text>
+<text x="1104.0" y="422.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#8a4b00" text-anchor="start" font-weight="normal" >имитация async-обработки</text>
+<line x1="1090.0" y1="446.0" x2="890.0" y2="446.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="890.0,446.0 897.8,441.5 897.8,450.5" fill="#333"/>
+<rect x="853.8" y="428.0" width="272.4" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="990.0" y="440.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >7. send chat-response (id, «Ответ &lt;uuid&gt;»)</text>
+<line x1="890.0" y1="486.0" x2="1290.0" y2="486.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="1290.0,486.0 1282.2,490.5 1282.2,481.5" fill="#333"/>
+<rect x="1053.0" y="468.0" width="74.0" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="1090.0" y="480.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >8. consume</text>
+<line x1="1290.0" y1="526.0" x2="690.0" y2="526.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="690.0,526.0 697.8,521.5 697.8,530.5" fill="#333"/>
+<rect x="860.0" y="508.0" width="260.0" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="990.0" y="520.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >9. UPDATE chat (response, response_time)</text>
+<line x1="1290.0" y1="566.0" x2="490.0" y2="566.0" stroke="#6a3d9a" stroke-width="1.5" stroke-dasharray="6,4"/>
+<polygon points="490.0,566.0 497.8,561.5 497.8,570.5" fill="#6a3d9a"/>
+<rect x="738.3" y="548.0" width="303.4" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="890.0" y="560.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#6a3d9a" text-anchor="middle" font-weight="normal" >10. complete(future) через ChatResponseRegistry</text>
+<line x1="490.0" y1="606.0" x2="290.0" y2="606.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="290.0,606.0 297.8,601.5 297.8,610.5" fill="#333"/>
+<rect x="325.1" y="588.0" width="129.8" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="390.0" y="600.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >11. return response</text>
+<line x1="290.0" y1="646.0" x2="90.0" y2="646.0" stroke="#333" stroke-width="1.5"/>
+<polygon points="90.0,646.0 97.8,641.5 97.8,650.5" fill="#333"/>
+<rect x="100.3" y="628.0" width="179.4" height="15.0" fill="#ffffff" fill-opacity="1" stroke="none" stroke-width="0.0" rx="2.0"/>
+<text x="190.0" y="640.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal" >12. HTTP 200 «Ответ &lt;uuid&gt;»</text>
+<rect x="530.0" y="330.0" width="220.0" height="82.0" fill="#fff7ec" fill-opacity="1" stroke="#e0a04a" stroke-width="1.1" rx="6.0"/>
+<text x="542.0" y="350.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#7a5200" text-anchor="start" font-weight="bold" >future.get(timeout)</text>
+<text x="542.0" y="368.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#7a5200" text-anchor="start" font-weight="normal" >VT ON: virtual thread припаркован,</text>
+<text x="542.0" y="383.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#7a5200" text-anchor="start" font-weight="normal" >carrier свободен для других</text>
+<text x="542.0" y="401.0" font-family="Segoe UI, sans-serif" font-size="10" fill="#7a5200" text-anchor="start" font-weight="normal" >VT OFF: OS-поток заблокирован</text>
+<rect x="40.0" y="724.0" width="1320.0" height="82.0" fill="#f7f9fc" fill-opacity="1" stroke="#cfd8e3" stroke-width="1.0" rx="6.0"/>
+<text x="56.0" y="746.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#111" text-anchor="start" font-weight="bold" >Виртуальные потоки:</text>
+<text x="56.0" y="764.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="start" font-weight="normal" >в точке future.get() виртуальный поток паркуется и размонтируется с carrier; carrier продолжает обслуживать другие запросы.</text>
+<text x="56.0" y="782.0" font-family="Segoe UI, sans-serif" font-size="12" fill="#111" text-anchor="start" font-weight="bold" >Без виртуальных потоков:</text>
+<text x="56.0" y="800.0" font-family="Segoe UI, sans-serif" font-size="11" fill="#333" text-anchor="start" font-weight="normal" >платформенный поток Tomcat остаётся заблокированным до вызова complete(future) из ChatResponseListener.</text>
+</svg>

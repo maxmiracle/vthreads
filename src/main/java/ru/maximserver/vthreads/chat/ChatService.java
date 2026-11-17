@@ -41,29 +41,35 @@ public class ChatService {
 	}
 
 	public String chat(String request) {
-		UUID id = UUID.randomUUID();
-		Instant requestTime = Instant.now();
-		this.chatRepository.insert(new Chat(id, request, requestTime, null, null));
-
-		CompletableFuture<String> responseFuture = this.responseRegistry.register(id);
+		ActiveRequests.increment();
 		try {
-			ChatRequestMessage message = new ChatRequestMessage(id, request, requestTime);
-			this.kafkaTemplate.send(this.chatRequestTopic, id.toString(), message)
-				.get(this.responseTimeout.toMillis(), TimeUnit.MILLISECONDS);
-			return responseFuture.get(this.responseTimeout.toMillis(), TimeUnit.MILLISECONDS);
-		}
-		catch (InterruptedException ex) {
-			Thread.currentThread().interrupt();
-			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Chat request was interrupted", ex);
-		}
-		catch (TimeoutException ex) {
-			throw new ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT, "Chat response timed out", ex);
-		}
-		catch (ExecutionException ex) {
-			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process chat request", ex);
+			UUID id = UUID.randomUUID();
+			Instant requestTime = Instant.now();
+			this.chatRepository.insert(new Chat(id, request, requestTime, null, null));
+
+			CompletableFuture<String> responseFuture = this.responseRegistry.register(id);
+			try {
+				ChatRequestMessage message = new ChatRequestMessage(id, request, requestTime);
+				this.kafkaTemplate.send(this.chatRequestTopic, id.toString(), message)
+					.get(this.responseTimeout.toMillis(), TimeUnit.MILLISECONDS);
+				return responseFuture.get(this.responseTimeout.toMillis(), TimeUnit.MILLISECONDS);
+			}
+			catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Chat request was interrupted", ex);
+			}
+			catch (TimeoutException ex) {
+				throw new ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT, "Chat response timed out", ex);
+			}
+			catch (ExecutionException ex) {
+				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process chat request", ex);
+			}
+			finally {
+				this.responseRegistry.remove(id);
+			}
 		}
 		finally {
-			this.responseRegistry.remove(id);
+			ActiveRequests.decrement();
 		}
 	}
 }
