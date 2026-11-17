@@ -29,6 +29,13 @@
 	<properties>
 		<java.version>25</java.version>
 		<spring-cloud.version>2025.1.4</spring-cloud.version>
+		<jmh.version>1.37</jmh.version>
+		<jmh.includes>ChatBenchmark</jmh.includes>
+		<jmh.forks>1</jmh.forks>
+		<jmh.warmupIterations>2</jmh.warmupIterations>
+		<jmh.measurementIterations>3</jmh.measurementIterations>
+		<jmh.concurrency>1,10,100</jmh.concurrency>
+		<jmh.profiler>ru.maximserver.vthreads.ThreadUsageProfiler</jmh.profiler>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -37,11 +44,15 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-liquibase</artifactId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-r2dbc</artifactId>
+			<artifactId>spring-boot-starter-kafka</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-liquibase</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -74,12 +85,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-liquibase-test</artifactId>
+			<artifactId>spring-boot-starter-kafka-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-r2dbc-test</artifactId>
+			<artifactId>spring-boot-starter-liquibase-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -99,7 +110,24 @@
 		</dependency>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-kafka</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-core</artifactId>
+			<version>${jmh.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-generator-annprocess</artifactId>
+			<version>${jmh.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -152,10 +180,41 @@
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
 								</path>
+								<path>
+									<groupId>org.openjdk.jmh</groupId>
+									<artifactId>jmh-generator-annprocess</artifactId>
+									<version>${jmh.version}</version>
+								</path>
 							</annotationProcessorPaths>
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<configuration>
+					<executable>java</executable>
+					<classpathScope>test</classpathScope>
+					<longModulepath>false</longModulepath>
+					<arguments>
+						<argument>-cp</argument>
+						<classpath/>
+						<argument>org.openjdk.jmh.Main</argument>
+						<argument>${jmh.includes}</argument>
+						<argument>-p</argument>
+						<argument>concurrency=${jmh.concurrency}</argument>
+						<argument>-f</argument>
+						<argument>${jmh.forks}</argument>
+						<argument>-wi</argument>
+						<argument>${jmh.warmupIterations}</argument>
+						<argument>-i</argument>
+						<argument>${jmh.measurementIterations}</argument>
+						<argument>-prof</argument>
+						<argument>${jmh.profiler}</argument>
+					</arguments>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

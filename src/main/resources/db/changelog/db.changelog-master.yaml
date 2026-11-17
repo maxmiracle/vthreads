@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-chat-table
+      author: vthreads
+      changes:
+        - createTable:
+            tableName: chat
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: request
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_time
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: response
+                  type: text
+              - column:
+                  name: response_time
+                  type: timestamp with time zone

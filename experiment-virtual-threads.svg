@@ -1,0 +1,367 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1380" viewBox="0 0 1800 1380">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="900" y="42" font-family="sans-serif" font-size="28" fill="#111" text-anchor="middle" font-weight="bold">Эксперимент: включение и отключение virtual threads</text>
+<text x="900" y="72" font-family="sans-serif" font-size="14" fill="#555" text-anchor="middle" font-weight="normal">Spring Boot 4 / JDK 25 · REST + Kafka + PostgreSQL · 1000 × POST /chat, concurrency=100 · JMH external mode</text>
+<rect x="30" y="100" width="1740" height="560" rx="12" fill="#fafafa" stroke="#cfcfcf" stroke-width="1"/>
+<text x="52" y="132" font-family="sans-serif" font-size="19" fill="#111" text-anchor="start" font-weight="bold">1. Схема взаимодействия (один chat-запрос; параллельно до 100)</text>
+<rect x="55" y="150" width="190" height="46" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="150" y="166.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="normal">JMH Client</text><text x="150" y="179.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="normal">(отдельная JVM)</text>
+<line x1="150" y1="196" x2="150" y2="620" stroke="#b0b0b0" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="305" y="150" width="190" height="46" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="400" y="166.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">REST API</text><text x="400" y="179.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">Tomcat / ChatController</text>
+<line x1="400" y1="196" x2="400" y2="620" stroke="#b0b0b0" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="565" y="150" width="190" height="46" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="660" y="173.0" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">ChatService</text>
+<line x1="660" y1="196" x2="660" y2="620" stroke="#b0b0b0" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="835" y="150" width="190" height="46" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="930" y="166.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">PostgreSQL</text><text x="930" y="179.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">chat</text>
+<line x1="930" y1="196" x2="930" y2="620" stroke="#b0b0b0" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="1085" y="150" width="190" height="46" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="1180" y="166.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">Kafka</text><text x="1180" y="179.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">chat-request / chat-response</text>
+<line x1="1180" y1="196" x2="1180" y2="620" stroke="#b0b0b0" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="1335" y="150" width="190" height="46" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="1430" y="173.0" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">ChatRequestListener</text>
+<line x1="1430" y1="196" x2="1430" y2="620" stroke="#b0b0b0" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="1565" y="150" width="190" height="46" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="1660" y="173.0" font-family="sans-serif" font-size="11" fill="#222" text-anchor="middle" font-weight="bold">ChatResponseListener</text>
+<line x1="1660" y1="196" x2="1660" y2="620" stroke="#b0b0b0" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="642" y="345" width="36" height="200" rx="4" fill="#ffe8a3" stroke="#f0c36d" stroke-width="1" fill-opacity="0.75"/>
+<text x="630" y="445" font-family="sans-serif" font-size="10" fill="#b8860b" text-anchor="end" font-weight="normal">поток ждёт</text>
+<text x="630" y="459" font-family="sans-serif" font-size="10" fill="#b8860b" text-anchor="end" font-weight="normal">future</text>
+<text x="630" y="473" font-family="sans-serif" font-size="9" fill="#b8860b" text-anchor="end" font-weight="normal">(blocked / parked)</text>
+<rect x="1325" y="384" width="210" height="44" rx="8" fill="#ffe0b2" stroke="#f28e2b" stroke-width="1"/>
+<text x="1430" y="402" font-family="sans-serif" font-size="11" fill="#8a4b00" text-anchor="middle" font-weight="bold">sleep(response-delay)</text>
+<text x="1430" y="418" font-family="sans-serif" font-size="10" fill="#8a4b00" text-anchor="middle" font-weight="normal">long-running operation</text>
+<line x1="150" y1="238" x2="400" y2="238" stroke="#333" stroke-width="1.5"/><polygon points="400,238 390,233 390,243" fill="#333"/><rect x="175.51999999999998" y="221" width="198.96" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="275.0" y="234" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">1. POST /chat (случайный текст)</text>
+<line x1="400" y1="271" x2="660" y2="271" stroke="#333" stroke-width="1.5"/><polygon points="660,271 650,266 650,276" fill="#333"/><rect x="476.72" y="254" width="106.56" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="530.0" y="267" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">2. chat(request)</text>
+<line x1="660" y1="304" x2="930" y2="304" stroke="#333" stroke-width="1.5"/><polygon points="930,304 920,299 920,309" fill="#333"/><rect x="661.64" y="287" width="266.72" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="795.0" y="300" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">3. INSERT chat (id, request, request_time)</text>
+<line x1="660" y1="337" x2="1180" y2="337" stroke="#333" stroke-width="1.5"/><polygon points="1180,337 1170,332 1170,342" fill="#333"/><rect x="768.16" y="320" width="303.68" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="920.0" y="333" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">4. send chat-request (id, request, request_time)</text>
+<line x1="1180" y1="370" x2="1430" y2="370" stroke="#333" stroke-width="1.5"/><polygon points="1430,370 1420,365 1420,375" fill="#333"/><rect x="1270.2" y="353" width="69.60000000000001" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="1305.0" y="366" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">5. consume</text>
+<line x1="1430" y1="443" x2="1180" y2="443" stroke="#333" stroke-width="1.5"/><polygon points="1180,443 1190,438 1190,448" fill="#333"/><rect x="1171.6399999999999" y="426" width="266.72" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="1305.0" y="439" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">6. send chat-response (id, «Ответ &lt;uuid&gt;»)</text>
+<line x1="1180" y1="476" x2="1660" y2="476" stroke="#333" stroke-width="1.5"/><polygon points="1660,476 1650,471 1650,481" fill="#333"/><rect x="1385.2" y="459" width="69.60000000000001" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="1420.0" y="472" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">7. consume</text>
+<line x1="1660" y1="509" x2="930" y2="509" stroke="#333" stroke-width="1.5"/><polygon points="930,509 940,504 940,514" fill="#333"/><rect x="1167.8" y="492" width="254.40000000000003" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="1295.0" y="505" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">8. UPDATE chat (response, response_time)</text>
+<line x1="1660" y1="542" x2="660" y2="542" stroke="#6a3d9a" stroke-width="1.5" stroke-dasharray="7,5"/><polygon points="660,542 670,537 670,547" fill="#6a3d9a"/><rect x="1029.72" y="525" width="260.56000000000006" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="1160.0" y="538" font-family="sans-serif" font-size="11" fill="#6a3d9a" text-anchor="middle" font-weight="normal">9. complete future (ChatResponseRegistry)</text>
+<line x1="660" y1="575" x2="400" y2="575" stroke="#333" stroke-width="1.5"/><polygon points="400,575 410,570 410,580" fill="#333"/><rect x="467.48" y="558" width="125.04" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="530.0" y="571" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">10. return response</text>
+<line x1="400" y1="608" x2="150" y2="608" stroke="#333" stroke-width="1.5"/><polygon points="150,608 160,603 160,613" fill="#333"/><rect x="187.83999999999997" y="591" width="174.32000000000002" height="17" rx="2" fill="#fafafa" stroke="#fafafa" stroke-width="0"/><text x="275.0" y="604" font-family="sans-serif" font-size="11" fill="#333" text-anchor="middle" font-weight="normal">11. HTTP 200 «Ответ &lt;uuid&gt;»</text>
+<text x="52" y="642" font-family="sans-serif" font-size="11" fill="#555" text-anchor="start" font-weight="normal">JMH Client — отдельная JVM (external mode). REST, ChatService и Kafka listeners работают в JVM приложения.</text>
+<text x="52" y="657" font-family="sans-serif" font-size="11" fill="#555" text-anchor="start" font-weight="normal">Жёлтая зона: ChatService ждёт CompletableFuture. Оранжевый блок: имитация долгой операции.</text>
+<rect x="30" y="680" width="1080" height="660" rx="12" fill="#fafafa" stroke="#cfcfcf" stroke-width="1"/>
+<text x="52" y="712" font-family="sans-serif" font-size="19" fill="#111" text-anchor="start" font-weight="bold">2. Что меняется: virtual threads ON / OFF</text>
+<rect x="55" y="732" width="500" height="580" rx="10" fill="#f2f7fd" stroke="#9ecae1" stroke-width="1"/>
+<text x="75" y="766" font-family="sans-serif" font-size="18" fill="#1f77b4" text-anchor="start" font-weight="bold">VT ON</text>
+<text x="75" y="786" font-family="sans-serif" font-size="12" fill="#3b6e8f" text-anchor="start" font-weight="normal">spring.threads.virtual.enabled=true</text>
+<text x="75" y="814" font-family="sans-serif" font-size="12" fill="#333" text-anchor="start" font-weight="normal">100 in-flight запросов → 100 virtual threads</text>
+<rect x="75" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="826" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="841" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="856" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="871" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="886" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="901" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="916" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="931" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="946" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="75" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="90" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="105" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="120" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="135" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="150" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="165" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="180" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="195" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<rect x="210" y="961" width="12" height="12" rx="2" fill="#9ecae1" stroke="#6baed6" stroke-width="0.5"/>
+<line x1="215" y1="986" x2="215" y2="1024" stroke="#1f77b4" stroke-width="1.6"/><polygon points="215,1024 210,1014 220,1014" fill="#1f77b4"/>
+<text x="227" y="1002" font-family="sans-serif" font-size="10" fill="#1f77b4" text-anchor="start" font-weight="normal">mounted ≤ 24</text>
+<text x="227" y="1016" font-family="sans-serif" font-size="10" fill="#1f77b4" text-anchor="start" font-weight="normal">queued до 78</text>
+<text x="75" y="1046" font-family="sans-serif" font-size="12" fill="#333" text-anchor="start" font-weight="normal">24 carrier platform threads (ForkJoinPool)</text>
+<rect x="75" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="99" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="123" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="147" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="171" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="195" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="219" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="243" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="267" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="291" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="315" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="339" y="1056" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="75" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="99" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="123" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="147" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="171" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="195" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="219" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="243" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="267" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="291" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="315" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<rect x="339" y="1080" width="20" height="20" rx="3" fill="#2c7fb8" stroke="#1f5f8b" stroke-width="0.7"/>
+<text x="75" y="1134" font-family="sans-serif" font-size="11" fill="#333" text-anchor="start" font-weight="normal">• Пока запрос ждёт Kafka, virtual thread parked</text>
+<text x="75" y="1154" font-family="sans-serif" font-size="11" fill="#333" text-anchor="start" font-weight="normal">• Carrier освобождается и берёт другие запросы</text>
+<text x="75" y="1174" font-family="sans-serif" font-size="11" fill="#333" text-anchor="start" font-weight="normal">• Платформенных потоков мало: max ≈ 54</text>
+<rect x="75" y="1200" width="460" height="84" rx="8" fill="#ffffff" stroke="#9ecae1" stroke-width="1"/>
+<text x="93" y="1226" font-family="sans-serif" font-size="12" fill="#111" text-anchor="start" font-weight="bold">Измерено в app JVM:</text>
+<text x="93" y="1248" font-family="sans-serif" font-size="12" fill="#1f77b4" text-anchor="start" font-weight="normal">max platform threads = 54</text>
+<text x="93" y="1268" font-family="sans-serif" font-size="12" fill="#1f77b4" text-anchor="start" font-weight="normal">mounted VT = 24 · queued VT = 78</text>
+<rect x="585" y="732" width="500" height="580" rx="10" fill="#fdf3f2" stroke="#f4a6a0" stroke-width="1"/>
+<text x="605" y="766" font-family="sans-serif" font-size="18" fill="#d62728" text-anchor="start" font-weight="bold">VT OFF</text>
+<text x="605" y="786" font-family="sans-serif" font-size="12" fill="#8f3b37" text-anchor="start" font-weight="normal">spring.threads.virtual.enabled=false</text>
+<text x="605" y="814" font-family="sans-serif" font-size="12" fill="#333" text-anchor="start" font-weight="normal">каждый in-flight запрос → отдельный platform thread</text>
+<rect x="721" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="735" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="749" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="763" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="777" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="791" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="805" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="819" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="833" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="847" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="861" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="875" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="889" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="903" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="917" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="931" y="826" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="721" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="735" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="749" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="763" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="777" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="791" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="805" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="819" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="833" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="847" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="861" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="875" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="889" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="903" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="917" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="931" y="840" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="721" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="735" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="749" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="763" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="777" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="791" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="805" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="819" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="833" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="847" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="861" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="875" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="889" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="903" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="917" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="931" y="854" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="721" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="735" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="749" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="763" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="777" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="791" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="805" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="819" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="833" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="847" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="861" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="875" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="889" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="903" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="917" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="931" y="868" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="721" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="735" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="749" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="763" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="777" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="791" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="805" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="819" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="833" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="847" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="861" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="875" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="889" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="903" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="917" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="931" y="882" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="721" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="735" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="749" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="763" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="777" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="791" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="805" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="819" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="833" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="847" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="861" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="875" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="889" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="903" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="917" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="931" y="896" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="721" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="735" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="749" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="763" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="777" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="791" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="805" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="819" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="833" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="847" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="861" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="875" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="889" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="903" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="917" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="931" y="910" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="721" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="735" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="749" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="763" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="777" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="791" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="805" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="819" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="833" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="847" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="861" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="875" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="889" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="903" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="917" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<rect x="931" y="924" width="12" height="12" rx="2" fill="#f4a6a0" stroke="#d6604d" stroke-width="0.5"/>
+<text x="605" y="972" font-family="sans-serif" font-size="12" fill="#333" text-anchor="start" font-weight="bold">128 platform threads:</text>
+<text x="605" y="992" font-family="sans-serif" font-size="11" fill="#555" text-anchor="start" font-weight="normal">Tomcat pool + Kafka/DB/Hikari + JVM</text>
+<text x="605" y="1034" font-family="sans-serif" font-size="11" fill="#333" text-anchor="start" font-weight="normal">• Запрос ждёт Kafka, занимая platform thread</text>
+<text x="605" y="1054" font-family="sans-serif" font-size="11" fill="#333" text-anchor="start" font-weight="normal">• Пул Tomcat растёт вместе с concurrency</text>
+<text x="605" y="1074" font-family="sans-serif" font-size="11" fill="#333" text-anchor="start" font-weight="normal">• Больше потоков ОС → память и переключения</text>
+<rect x="605" y="1102" width="460" height="56" rx="8" fill="#fff1f0" stroke="#f4a6a0" stroke-width="1"/>
+<text x="835.0" y="1128" font-family="sans-serif" font-size="20" fill="#d62728" text-anchor="middle" font-weight="bold">+137% platform threads</text>
+<text x="835.0" y="1148" font-family="sans-serif" font-size="11" fill="#8f3b37" text-anchor="middle" font-weight="normal">по сравнению с VT ON</text>
+<rect x="605" y="1200" width="460" height="84" rx="8" fill="#ffffff" stroke="#f4a6a0" stroke-width="1"/>
+<text x="623" y="1226" font-family="sans-serif" font-size="12" fill="#111" text-anchor="start" font-weight="bold">Измерено в app JVM:</text>
+<text x="623" y="1248" font-family="sans-serif" font-size="12" fill="#d62728" text-anchor="start" font-weight="normal">max platform threads = 128</text>
+<text x="623" y="1268" font-family="sans-serif" font-size="12" fill="#d62728" text-anchor="start" font-weight="normal">mounted VT = 0 · queued VT = 0</text>
+<rect x="1130" y="680" width="640" height="660" rx="12" fill="#fafafa" stroke="#cfcfcf" stroke-width="1"/>
+<text x="1152" y="712" font-family="sans-serif" font-size="19" fill="#111" text-anchor="start" font-weight="bold">3. Схема проверки</text>
+<rect x="1160" y="732" width="580" height="72" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="1180" y="759.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">1. JMH run: VIRTUAL_THREADS_ENABLED=true</text><text x="1180" y="776.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">app JVM отдельным процессом · 1000 запросов · concurrency=100</text>
+<rect x="1160" y="826" width="580" height="72" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="1180" y="853.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">2. JMH run: VIRTUAL_THREADS_ENABLED=false</text><text x="1180" y="870.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">те же параметры нагрузки и та же инфраструктура</text>
+<rect x="1160" y="920" width="580" height="104" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="1180" y="955.0" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">3. ThreadUsageRecorder в JVM приложения</text><text x="1180" y="972.0" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">каждые 50 мс: ThreadMXBean + VirtualThreadSchedulerMXBean</text><text x="1180" y="989.0" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">platform / mounted / queued / carrier pool</text>
+<rect x="1160" y="1046" width="580" height="76" rx="8" fill="#ffffff" stroke="#bdbdbd" stroke-width="1"/>
+<text x="1180" y="1075.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">4. CSV + наложение двух прогонов</text><text x="1180" y="1092.5" font-family="sans-serif" font-size="11" fill="#222" text-anchor="start" font-weight="normal">target/jmh-app-thread-usage-*.csv → result-threads.svg</text>
+<line x1="1450.0" y1="804" x2="1450.0" y2="826" stroke="#666" stroke-width="1.6"/><polygon points="1450.0,826 1445.0,816 1455.0,816" fill="#666"/>
+<line x1="1450.0" y1="898" x2="1450.0" y2="920" stroke="#666" stroke-width="1.6"/><polygon points="1450.0,920 1445.0,910 1455.0,910" fill="#666"/>
+<line x1="1450.0" y1="1024" x2="1450.0" y2="1046" stroke="#666" stroke-width="1.6"/><polygon points="1450.0,1046 1445.0,1036 1455.0,1036" fill="#666"/>
+<text x="1160" y="1150" font-family="sans-serif" font-size="12" fill="#111" text-anchor="start" font-weight="bold">Результат: platform threads, VT ON vs VT OFF</text>
+<rect x="1180" y="1165" width="540" height="135" rx="4" fill="#ffffff" stroke="#dddddd" stroke-width="1"/>
+<line x1="1180" y1="1300.0" x2="1720" y2="1300.0" stroke="#eeeeee" stroke-width="1"/>
+<text x="1172" y="1304.0" font-family="sans-serif" font-size="9" fill="#666" text-anchor="end" font-weight="normal">0</text>
+<line x1="1180" y1="1255.0" x2="1720" y2="1255.0" stroke="#eeeeee" stroke-width="1"/>
+<text x="1172" y="1259.0" font-family="sans-serif" font-size="9" fill="#666" text-anchor="end" font-weight="normal">48</text>
+<line x1="1180" y1="1210.0" x2="1720" y2="1210.0" stroke="#eeeeee" stroke-width="1"/>
+<text x="1172" y="1214.0" font-family="sans-serif" font-size="9" fill="#666" text-anchor="end" font-weight="normal">96</text>
+<line x1="1180" y1="1165.0" x2="1720" y2="1165.0" stroke="#eeeeee" stroke-width="1"/>
+<text x="1172" y="1169.0" font-family="sans-serif" font-size="9" fill="#666" text-anchor="end" font-weight="normal">143</text>
+<text x="1180.0" y="1314" font-family="sans-serif" font-size="9" fill="#666" text-anchor="middle" font-weight="normal">0</text>
+<text x="1360.0" y="1314" font-family="sans-serif" font-size="9" fill="#666" text-anchor="middle" font-weight="normal">3495</text>
+<text x="1540.0" y="1314" font-family="sans-serif" font-size="9" fill="#666" text-anchor="middle" font-weight="normal">6989</text>
+<text x="1720.0" y="1314" font-family="sans-serif" font-size="9" fill="#666" text-anchor="middle" font-weight="normal">10484</text>
+<line x1="1180" y1="1300" x2="1720" y2="1300" stroke="#999" stroke-width="1"/>
+<line x1="1180" y1="1165" x2="1180" y2="1300" stroke="#999" stroke-width="1"/>
+<polyline fill="none" stroke="#d62728" stroke-width="2.2" points="1180.1,1267.0 1182.9,1266.1 1185.5,1266.1 1188.1,1266.1 1190.8,1266.1 1193.4,1266.1 1196.0,1266.1 1198.6,1266.1 1201.2,1266.1 1203.8,1266.1 1206.5,1266.1 1209.1,1266.1 1211.7,1266.1 1214.3,1266.1 1216.9,1266.1 1219.6,1266.1 1222.2,1266.1 1224.8,1266.1 1227.4,1266.1 1230.0,1266.1 1232.7,1227.5 1235.4,1181.3 1238.0,1181.3 1240.6,1181.3 1243.3,1181.3 1245.9,1181.3 1248.5,1181.3 1251.1,1181.3 1253.7,1181.3 1256.4,1179.5 1259.0,1179.5 1261.6,1179.5 1264.2,1179.5 1266.8,1179.5 1269.4,1179.5 1272.0,1179.5 1274.6,1179.5 1277.2,1179.5 1279.8,1179.5 1282.5,1179.5 1285.1,1179.5 1287.7,1179.5 1290.3,1179.5 1292.9,1179.5 1295.6,1179.5 1298.2,1179.5 1300.8,1179.5 1303.4,1179.5 1306.0,1179.5 1308.6,1179.5 1311.2,1179.5 1313.8,1179.5 1316.4,1179.5 1319.0,1179.5 1321.6,1179.5 1324.2,1179.5 1326.8,1179.5 1329.4,1179.5 1332.0,1179.5 1334.6,1179.5 1337.2,1179.5 1339.8,1179.5 1342.5,1179.5 1345.1,1179.5 1347.7,1179.5 1350.3,1179.5 1352.9,1179.5 1355.5,1179.5 1358.1,1179.5 1360.7,1179.5 1363.3,1179.5 1365.9,1179.5 1368.5,1179.5 1371.1,1179.5 1373.7,1179.5 1376.3,1179.5 1379.0,1179.5 1381.6,1179.5 1384.2,1179.5 1386.9,1179.5 1389.5,1179.5 1392.1,1179.5 1394.6,1179.5 1397.3,1179.5 1399.9,1179.5 1402.4,1179.5 1405.1,1179.5 1407.7,1179.5 1410.3,1179.5 1412.9,1179.5 1415.5,1179.5 1418.1,1179.5 1420.7,1179.5 1423.3,1179.5 1425.9,1179.5 1428.5,1179.5 1431.1,1179.5 1433.8,1179.5 1436.4,1179.5 1439.0,1179.5 1441.6,1179.5 1444.3,1179.5 1446.8,1179.5 1449.5,1179.5 1452.0,1179.5 1454.6,1179.5 1457.2,1179.5 1459.8,1179.5 1462.4,1179.5 1465.0,1179.5 1467.6,1179.5 1470.2,1179.5 1472.9,1179.5 1475.5,1179.5 1478.1,1179.5 1480.7,1179.5 1483.2,1179.5 1485.9,1179.5 1488.5,1179.5 1491.2,1179.5 1493.8,1179.5 1496.3,1179.5 1499.2,1179.5 1501.8,1179.5 1504.4,1179.5 1507.0,1179.5 1509.6,1179.5 1512.3,1179.5 1514.9,1179.5 1517.5,1179.5 1520.1,1179.5 1522.7,1179.5 1525.3,1179.5 1527.9,1179.5 1530.5,1179.5 1533.1,1180.4 1535.7,1180.4 1538.3,1180.4 1540.9,1180.4 1543.5,1180.4 1546.1,1180.4 1548.7,1180.4 1551.3,1180.4 1553.9,1180.4 1556.5,1180.4 1559.1,1180.4 1561.7,1180.4 1564.3,1180.4 1566.9,1180.4 1569.5,1180.4 1572.2,1180.4 1574.8,1180.4 1577.4,1180.4 1579.9,1180.4 1582.6,1180.4 1585.2,1180.4 1587.8,1180.4 1590.4,1180.4 1593.0,1180.4 1595.6,1180.4 1598.2,1180.4 1600.8,1180.4 1603.4,1180.4 1606.1,1180.4 1608.7,1180.4 1611.3,1180.4 1613.9,1180.4 1616.5,1180.4 1619.1,1180.4 1621.7,1180.4 1624.3,1180.4 1626.9,1180.4 1629.5,1180.4 1632.2,1180.4 1634.8,1180.4 1637.4,1180.4 1640.0,1180.4 1642.7,1180.4 1645.3,1180.4 1647.9,1180.4 1650.5,1180.4 1653.1,1180.4 1655.7,1180.4 1658.3,1180.4 1660.9,1180.4 1663.5,1180.4 1666.1,1180.4 1668.8,1180.4 1671.4,1180.4 1674.1,1180.4 1676.7,1180.4 1679.3,1180.4 1681.9,1180.4 1684.5,1180.4 1687.1,1180.4 1689.7,1180.4 1692.3,1180.4 1694.9,1180.4 1697.5,1180.4 1700.1,1180.4 1702.7,1180.4 1705.2,1180.4 1707.9,1180.4"/>
+<polyline fill="none" stroke="#1f77b4" stroke-width="2.2" points="1180.1,1274.6 1182.8,1273.6 1185.4,1273.6 1188.0,1273.6 1190.6,1273.6 1193.2,1273.6 1195.8,1273.6 1198.5,1273.6 1201.1,1273.6 1203.7,1273.6 1206.3,1273.6 1208.9,1273.6 1211.5,1273.6 1214.1,1273.6 1216.7,1273.6 1219.4,1273.6 1222.0,1273.6 1224.6,1273.6 1227.2,1273.6 1229.9,1273.6 1232.5,1273.6 1235.1,1273.6 1237.8,1273.6 1240.4,1257.6 1243.0,1254.8 1245.6,1254.8 1248.2,1254.8 1250.8,1254.8 1253.4,1254.8 1256.0,1254.8 1258.7,1251.0 1261.3,1251.0 1263.9,1251.0 1266.6,1249.1 1269.2,1249.1 1271.8,1249.1 1274.4,1249.1 1277.0,1249.1 1279.5,1249.1 1282.2,1249.1 1284.8,1249.1 1287.4,1249.1 1290.0,1249.1 1292.7,1249.1 1295.3,1249.1 1297.9,1249.1 1300.5,1249.1 1303.1,1249.1 1305.7,1249.1 1308.3,1249.1 1310.9,1249.1 1313.6,1249.1 1316.2,1249.1 1318.8,1249.1 1321.4,1249.1 1324.0,1249.1 1326.6,1249.1 1329.2,1249.1 1331.8,1249.1 1334.4,1249.1 1337.0,1249.1 1339.6,1249.1 1342.2,1249.1 1344.8,1249.1 1347.4,1249.1 1350.0,1249.1 1352.6,1249.1 1355.2,1249.1 1357.8,1249.1 1360.5,1249.1 1363.1,1249.1 1365.7,1249.1 1368.3,1249.1 1371.0,1249.1 1373.5,1249.1 1376.2,1249.1 1378.7,1249.1 1381.3,1249.1 1383.9,1249.1 1386.6,1249.1 1389.2,1249.1 1391.8,1249.1 1394.5,1249.1 1397.1,1249.1 1399.6,1249.1 1402.2,1249.1 1404.8,1249.1 1407.4,1249.1 1410.0,1249.1 1412.6,1249.1 1415.2,1249.1 1417.8,1249.1 1420.5,1249.1 1423.1,1249.1 1425.7,1249.1 1428.3,1249.1 1430.9,1249.1 1433.5,1249.1 1436.1,1249.1 1438.7,1249.1 1441.3,1249.1 1444.0,1249.1 1446.6,1249.1 1449.2,1249.1 1451.8,1249.1 1454.4,1249.1 1457.0,1249.1 1459.6,1249.1 1462.2,1249.1 1464.8,1249.1 1467.4,1249.1 1470.0,1249.1 1472.6,1249.1 1475.2,1249.1 1477.8,1249.1 1480.4,1249.1 1483.1,1249.1 1485.7,1249.1 1488.3,1249.1 1490.9,1249.1 1493.5,1249.1 1496.1,1249.1 1498.7,1249.1 1501.3,1249.1 1503.9,1249.1 1506.5,1249.1 1509.1,1249.1 1511.7,1249.1 1514.3,1249.1 1516.9,1249.1 1519.5,1249.1 1522.1,1249.1 1524.7,1249.1 1527.3,1249.1 1529.9,1249.1 1532.5,1249.1 1535.1,1249.1 1537.7,1249.1 1540.3,1250.1 1542.9,1250.1 1545.5,1250.1 1548.1,1250.1 1550.7,1250.1 1553.3,1250.1 1555.9,1250.1 1558.5,1250.1 1561.1,1250.1 1563.7,1250.1 1566.3,1250.1 1568.9,1250.1 1571.5,1250.1 1574.1,1250.1 1576.7,1250.1 1579.3,1250.1 1582.0,1250.1 1584.6,1250.1 1587.2,1250.1 1589.8,1250.1 1592.4,1250.1 1594.9,1250.1 1597.5,1250.1 1600.2,1250.1 1602.8,1250.1 1605.4,1250.1 1608.0,1250.1 1610.6,1250.1 1613.2,1250.1 1615.8,1250.1 1618.4,1250.1 1621.0,1250.1 1623.7,1250.1 1626.2,1250.1 1628.9,1250.1 1631.5,1250.1 1634.1,1250.1 1636.7,1250.1 1639.3,1250.1 1641.9,1250.1 1644.5,1250.1 1647.1,1250.1 1649.8,1250.1 1652.4,1250.1 1655.0,1250.1 1657.6,1250.1 1660.2,1250.1 1662.8,1250.1 1665.4,1250.1 1668.0,1250.1 1670.6,1250.1 1673.2,1250.1 1675.8,1250.1 1678.4,1250.1 1681.0,1250.1 1683.6,1250.1 1686.2,1250.1 1688.8,1250.1 1691.4,1250.1 1694.0,1250.1 1696.6,1250.1 1699.2,1250.1 1701.8,1250.1 1704.4,1250.1 1707.0,1250.1 1709.6,1250.1 1712.2,1250.1 1714.8,1250.1 1717.4,1250.1 1720.0,1250.1"/>
+<rect x="1190" y="1172" width="58.400000000000006" height="15" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="0"/><text x="1190" y="1183" font-family="sans-serif" font-size="9" fill="#d62728" text-anchor="start" font-weight="normal">VT OFF 128</text>
+<rect x="1190" y="1188" width="48.32000000000001" height="15" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="0"/><text x="1190" y="1199" font-family="sans-serif" font-size="9" fill="#1f77b4" text-anchor="start" font-weight="normal">VT ON 54</text>
+<text x="1712" y="1292" font-family="sans-serif" font-size="9" fill="#777" text-anchor="end" font-weight="normal">время →</text>
+</svg>

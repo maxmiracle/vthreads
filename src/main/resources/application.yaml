@@ -1,3 +1,32 @@
 spring:
   application:
     name: vthreads
+  threads:
+    virtual:
+      enabled: ${VIRTUAL_THREADS_ENABLED:false}
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/vthreads}
+    username: ${DB_USERNAME:vthreads}
+    password: ${DB_PASSWORD:vthreads}
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:vthreads}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: ru.maximserver.vthreads.*
+
+app:
+  kafka:
+    chat-request-topic: ${CHAT_REQUEST_TOPIC:chat-request}
+    chat-response-topic: ${CHAT_RESPONSE_TOPIC:chat-response}
+  chat:
+    response-delay: ${CHAT_RESPONSE_DELAY:10s}
+    response-timeout: ${CHAT_RESPONSE_TIMEOUT:30s}
